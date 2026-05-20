@@ -14,7 +14,10 @@
             ThreadPool.SetMaxThreads(5, 5); // 최대 스레드 5
 
             for (int i = 0; i < 5; i++)
-                ThreadPool.QueueUserWorkItem((obj) => { Console.WriteLine("Queue Running"); });
+            {
+                Task t = new Task(() => { Console.WriteLine("Task Running!"); }, TaskCreationOptions.LongRunning);
+                t.Start();
+            }
 
             ThreadPool.QueueUserWorkItem(MainThread); // 완료된 스레드가 
 
