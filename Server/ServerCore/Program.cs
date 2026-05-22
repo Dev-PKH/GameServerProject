@@ -2,34 +2,27 @@
 {
     class Program
     {
-        volatile static bool stop = false;
-
-        static void ThreadMain()
-        {
-            Console.WriteLine("Thread Start!");
-
-            while(!stop)
-            {
-
-            }
-
-            Console.WriteLine("Thread End!");
-        }
-
         static void Main(string[] args)
         {
-            Task t = new Task(ThreadMain);
-            t.Start();
+            int[,] arr = new int[10000, 10000];
 
-            Thread.Sleep(1000);
+            {
+                long now = DateTime.Now.Ticks;
+                for (int y = 0; y < 10000; y++)
+                    for (int x = 0; x < 10000; x++)
+                        arr[y, x] = 1;
+                long end = DateTime.Now.Ticks;
+                Console.WriteLine($"(y,x) 걸린 시간: {end - now}");
+            }
 
-            stop = true;
-
-            Console.WriteLine("Stop Call");
-            Console.WriteLine("Stop Waiting!");
-
-            t.Wait(); // Thread의 Join과 동일 (Task 작업이 끝날 때 까지 기다림)
-            Console.WriteLine("Success");
+            {
+                long now = DateTime.Now.Ticks;
+                for (int y = 0; y < 10000; y++)
+                    for (int x = 0; x < 10000; x++)
+                        arr[x, y] = 1;
+                long end = DateTime.Now.Ticks;
+                Console.WriteLine($"(x,y) 걸린 시간: {end - now}");
+            }
         }
     }
 }
