@@ -2,39 +2,34 @@
 {
     class Program
     {
-        static void MainThread(object state)
+        volatile static bool stop = false;
+
+        static void ThreadMain()
         {
-            for(int i=0; i<5; i++)
-                Console.WriteLine("Thread Running!");
+            Console.WriteLine("Thread Start!");
+
+            while(!stop)
+            {
+
+            }
+
+            Console.WriteLine("Thread End!");
         }
 
         static void Main(string[] args)
         {
-            ThreadPool.SetMinThreads(1, 1); // 최소 스레드 1
-            ThreadPool.SetMaxThreads(5, 5); // 최대 스레드 5
-
-            for (int i = 0; i < 5; i++)
-            {
-                Task t = new Task(() => { Console.WriteLine("Task Running!"); }, TaskCreationOptions.LongRunning);
-                t.Start();
-            }
-
-            ThreadPool.QueueUserWorkItem(MainThread); // 완료된 스레드가 
-
-            while(true) // QueueUserWorkItem은 기본적으로 Background(IsBackground = true)이므로, 종료 방지
-            {
-
-            }
-
-            /*Thread t = new Thread(MainThread);
-            t.Name = "Test Thread";
-            t.IsBackground = true;
+            Task t = new Task(ThreadMain);
             t.Start();
 
-            Console.WriteLine("Thread Start!");
+            Thread.Sleep(1000);
 
-            t.Join();
-            Console.WriteLine("End Complete!");*/
+            stop = true;
+
+            Console.WriteLine("Stop Call");
+            Console.WriteLine("Stop Waiting!");
+
+            t.Wait(); // Thread의 Join과 동일 (Task 작업이 끝날 때 까지 기다림)
+            Console.WriteLine("Success");
         }
     }
 }
