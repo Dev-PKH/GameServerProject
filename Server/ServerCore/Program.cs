@@ -3,15 +3,26 @@
     class Program
     {
         static int number = 0;
+        static object obj = new();
 
         static void Thread1()
         {
-            for (int i = 0; i < 10000; i++) Interlocked.Increment(ref number);
+            for (int i = 0; i < 10000; i++)
+            {
+                Monitor.Enter(obj);
+                number++;
+                Monitor.Exit(obj);
+            }
         }
 
         static void Thread2()
         {
-            for (int i = 0; i < 10000; i++) Interlocked.Decrement(ref number);
+            for (int i = 0; i < 10000; i++)
+            {
+                Monitor.Enter(obj);
+                number--;
+                Monitor.Exit(obj);
+            }
         }
 
         static void Main(string[] args)
