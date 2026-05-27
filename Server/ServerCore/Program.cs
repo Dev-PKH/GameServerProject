@@ -9,9 +9,7 @@
         {
             for (int i = 0; i < 10000; i++)
             {
-                Monitor.Enter(obj);
-                number++;
-                Monitor.Exit(obj);
+                lock (obj) { number++;}
             }
         }
 
@@ -19,9 +17,7 @@
         {
             for (int i = 0; i < 10000; i++)
             {
-                Monitor.Enter(obj);
-                number--;
-                Monitor.Exit(obj);
+                lock (obj) { number--; }
             }
         }
 
