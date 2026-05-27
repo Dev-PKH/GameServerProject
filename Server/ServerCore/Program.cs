@@ -2,51 +2,29 @@
 {
     class Program
     {
-        static int a = 0;
-        static int b = 0;
-        static int ta = 0;
-        static int tb = 0;
+        static int number = 0;
 
-        static void FuncA()
+        static void Thread1()
         {
-            a = 1; // Store a
-
-            Thread.MemoryBarrier();
-
-            tb = b; // Load b
+            for (int i = 0; i < 10000; i++) Interlocked.Increment(ref number);
         }
 
-        static void FuncB()
+        static void Thread2()
         {
-            b = 1; // Store b
-
-            Thread.MemoryBarrier();
-
-            ta = a; // Load a
+            for (int i = 0; i < 10000; i++) Interlocked.Decrement(ref number);
         }
 
         static void Main(string[] args)
         {
-            int count = 0;
-            while(true)
-            {
-                a = b = ta = tb = 0;
+            Task t1 = new Task(Thread1);
+            Task t2 = new Task(Thread2);
+        
+            t1.Start();
+            t2.Start();
 
-                Task t1 = new Task(FuncA);
-                Task t2 = new Task(FuncB);
-                t1.Start();
-                t2.Start();
+            Task.WaitAll(t1, t2);
 
-                Task.WaitAll(t1, t2);
-
-                if(ta == 0 && tb == 0)
-                {
-                    count++;
-                    break;
-                }
-            }
-
-            Console.WriteLine($"{count}번 탈출");
+            Console.WriteLine(number);
         }
     }
 }
