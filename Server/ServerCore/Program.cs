@@ -1,5 +1,47 @@
 ﻿namespace ServerCore
 {
+    class SessionManager
+    {
+        static object lockObj = new();
+
+        public static void TestSession()
+        {
+            lock(lockObj)
+            {
+
+            }
+        }
+
+        public static void Test()
+        {
+            lock(lockObj)
+            {
+                UserManager.TestUser();
+            }
+        }
+    }
+
+    class UserManager
+    {
+        static object lockObj = new();
+
+        public static void Test()
+        {
+            lock(lockObj)
+            {
+                SessionManager.TestSession();
+            }
+        }
+
+        public static void TestUser()
+        {
+            lock(lockObj)
+            {
+                
+            }
+        }
+    }
+
     class Program
     {
         static int number = 0;
@@ -9,7 +51,7 @@
         {
             for (int i = 0; i < 10000; i++)
             {
-                lock (obj) { number++;}
+                SessionManager.Test();
             }
         }
 
@@ -17,7 +59,7 @@
         {
             for (int i = 0; i < 10000; i++)
             {
-                lock (obj) { number--; }
+                UserManager.Test();  
             }
         }
 
