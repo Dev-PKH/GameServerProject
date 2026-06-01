@@ -1,65 +1,49 @@
 ﻿namespace ServerCore
 {
-    class SessionManager
+    class SpinLock
     {
-        static object lockObj = new();
+        volatile int locked = 0;
 
-        public static void TestSession()
+        public void Acquire()
         {
-            lock(lockObj)
+            while (true)
             {
-
+                // Interlocked.Exchange(ref int, value): int의 현재 값을 반환하며, int값을 value로 바꿈
+                // ex) locked 0일때, int original = Interlocked.Exchange(ref locked, 1) 실행 결과
+                // original: 0(Exchange이전 locked값), locekd = 1(Exchange Value(1)값을 적용)
+                int original = Interlocked.Exchange(ref locked, 1);
+                if (original == 0) break;
             }
         }
 
-        public static void Test()
+        public void Release()
         {
-            lock(lockObj)
-            {
-                UserManager.TestUser();
-            }
-        }
-    }
-
-    class UserManager
-    {
-        static object lockObj = new();
-
-        public static void Test()
-        {
-            lock(lockObj)
-            {
-                SessionManager.TestSession();
-            }
-        }
-
-        public static void TestUser()
-        {
-            lock(lockObj)
-            {
-                
-            }
+            locked = 0;
         }
     }
 
     class Program
     {
-        static int number = 0;
-        static object obj = new();
+        static int num = 0;
+        static SpinLock spinLock = new SpinLock();
 
         static void Thread1()
         {
-            for (int i = 0; i < 10000; i++)
+            for(int i=0; i<100000; i++)
             {
-                SessionManager.Test();
+                spinLock.Acquire();
+                num++;
+                spinLock.Release();
             }
         }
 
         static void Thread2()
         {
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 100000; i++)
             {
-                UserManager.Test();  
+                spinLock.Acquire();
+                num--;
+                spinLock.Release();
             }
         }
 
@@ -67,13 +51,13 @@
         {
             Task t1 = new Task(Thread1);
             Task t2 = new Task(Thread2);
-        
+
             t1.Start();
             t2.Start();
 
             Task.WaitAll(t1, t2);
 
-            Console.WriteLine(number);
+            Console.WriteLine(num);
         }
     }
 }
