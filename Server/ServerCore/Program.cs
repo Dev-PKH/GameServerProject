@@ -4,37 +4,27 @@ namespace ServerCore
 {
     class Program
     {
-        static volatile int count = 0;
-        static RWLock rwLock = new();
+        static ThreadLocal<string> name = new(
+            () => { return $"Name: {Thread.CurrentThread.ManagedThreadId}"; });
+        // tls에서 새롭게 할당받을 때 마다, 현재 스레드의 id를 반환
+
+        static void GetName()
+        {
+            bool repeat = name.IsValueCreated; // 현재 Thread가 별도의 공간을 마련했는지
+            if (repeat)
+                Console.WriteLine(name.Value + "(repeat)"); // 해당 변수를 사용
+            else
+                Console.WriteLine(name.Value); // 자신만의 공간을 만들고 사용
+        }
+
 
         static void Main(string[] args)
         {
-            Task t1 = new Task(() =>
-            {
-                for (int i = 0; i < 100000; i++)
-                {
-                    rwLock.WriteLock();
-                    count++;
-                    rwLock.WriteUnlock();
-                }
-            });
+            ThreadPool.SetMinThreads(1, 1);
+            ThreadPool.SetMaxThreads(3, 3);
+            Parallel.Invoke(GetName, GetName, GetName, GetName, GetName); // task 5개 실행과 동일
 
-            Task t2 = new Task(() =>
-            {
-                for (int i = 0; i < 100000; i++)
-                {
-                    rwLock.WriteLock();
-                    count--;
-                    rwLock.WriteUnlock();
-                }
-            });
-
-            t1.Start();
-            t2.Start();
-
-            Task.WaitAll(t1, t2);
-
-            Console.WriteLine(count);
+            name.Dispose();
         }
     }
 }
