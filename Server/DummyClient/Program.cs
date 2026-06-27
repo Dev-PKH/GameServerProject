@@ -24,9 +24,12 @@ namespace DummyClient
                     socket.Connect(endPoint);
                     Console.WriteLine($"Connected TO {socket.RemoteEndPoint.ToString()}");
 
-                    // 관리자(Server)로 데이터 송신
-                    byte[] sendBuff = Encoding.UTF8.GetBytes("Parking complete!~");
-                    int sendBytes = socket.Send(sendBuff);
+                    for(int i=0; i<5; i++)
+                    {
+                        // 관리자(Server)로 데이터 송신
+                        byte[] sendBuff = Encoding.UTF8.GetBytes($"Parking complete!~ {i}");
+                        int sendBytes = socket.Send(sendBuff);
+                    }
 
                     // 관리자의 데이터 수신
                     byte[] recvBuff = new byte[1024];
