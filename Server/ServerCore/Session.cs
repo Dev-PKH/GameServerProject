@@ -8,22 +8,27 @@ namespace ServerCore
         Socket socket;
         int disconnected = 0;
 
+        // Send 필드
         object lockObj = new(); // lock 오브젝트
         Queue<byte[]> sendQueue = new(); // send 버퍼
-        bool sendPending; // 현재 send Pending 여부
+        List<ArraySegment<byte>> sendPendingList = new(); // ArraySegment는 구조체라서, 값이 복사되어 저장됨 
+
         SocketAsyncEventArgs sendArgs = new();
+        SocketAsyncEventArgs reciveArgs = new();
 
         public void Start(Socket socket)
         {
             this.socket = socket;
 
-            SocketAsyncEventArgs reciveArgs = new SocketAsyncEventArgs();
+            // Recive Setting
             reciveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReciveCompleted);
             reciveArgs.SetBuffer(new byte[1024], 0, 1024); // 바이트 크기, 시작 위치, 사용할 바이트 개수
+                                                           // -> 1024크기의 byte배열에 0번째부터 1024개를 사용함. (시작이 1이면 1~ 1025이므로 에러)
 
+            // Send Setting
             sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
 
-            RegisterRecive(reciveArgs);
+            RegisterRecive();
         }
 
         public void Send(byte[] sendBuff)
@@ -31,7 +36,7 @@ namespace ServerCore
             lock (lockObj) // 동시 접근 차단
             {
                 sendQueue.Enqueue(sendBuff);
-                if (sendPending == false) // 비동기 대기중일 때
+                if (sendPendingList.Count == 0) // 실행할 Send가 없어, 비동기 대기중일 때
                 {
                     RegisterSend();
                 }
@@ -40,7 +45,7 @@ namespace ServerCore
 
         public void Disconnect()
         {
-            // 누군가 이미 disconnected를 진행한 경우 (중복 Disconnect 방지용)
+            // 이미 disconnected를 진행한 경우 (중복 Disconnect 방지용)
             if (Interlocked.Exchange(ref disconnected, 1) == 1)
                 return;
 
@@ -51,10 +56,13 @@ namespace ServerCore
         #region 네트워크 통신
         void RegisterSend()
         {
-            sendPending = true; // Pending 활성화
+            while (sendQueue.Count > 0)
+            {
+                byte[] buffer = sendQueue.Dequeue();
+                sendPendingList.Add(new ArraySegment<byte>(buffer, 0, buffer.Length));
+            }
 
-            byte[] buff = sendQueue.Dequeue();
-            sendArgs.SetBuffer(buff, 0, buff.Length);
+            sendArgs.BufferList = sendPendingList;
 
             bool pending = socket.SendAsync(sendArgs);
             if(pending == false)
@@ -74,13 +82,16 @@ namespace ServerCore
                 {
                     try
                     {
+                        sendArgs.BufferList = null;
+                        sendPendingList.Clear();
+
+                        Console.WriteLine($"사용된 바이트 수: {sendArgs.BytesTransferred}");
+
                         // 작업이 완료될 때 Queue에 다른 Send가 남아있는 경우 (내 작업중에 다른 클라이언트나 추가적인 Send 요청이 온 경우)
                         if (sendQueue.Count > 0) 
                         {
                             RegisterSend();
                         }
-                        else
-                            sendPending = false;
                     }
                     catch (Exception e)
                     {
@@ -94,12 +105,12 @@ namespace ServerCore
             }
         }
 
-        void RegisterRecive(SocketAsyncEventArgs args)
+        void RegisterRecive()
         {
-            bool pending = socket.ReceiveAsync(args);
+            bool pending = socket.ReceiveAsync(reciveArgs);
 
             if (pending == false)
-                OnReciveCompleted(null, args);
+                OnReciveCompleted(null, reciveArgs);
         }
 
         void OnReciveCompleted(object sender, SocketAsyncEventArgs args)
@@ -111,7 +122,7 @@ namespace ServerCore
                 {
                     string reciveData = Encoding.UTF8.GetString(args.Buffer, args.Offset, args.BytesTransferred); // 버퍼 크기, 시작 위치, 바이트 개수
                     Console.WriteLine($"[Client Receive Data] {reciveData}");
-                    RegisterRecive(args);
+                    RegisterRecive();
                 }
                 catch (Exception e)
                 {
