@@ -4,29 +4,39 @@ using System.Text;
 
 namespace ServerCore
 {
+    class GameSession : Session
+    {
+        public override void OnConnected(EndPoint endPoint)
+        {
+            Console.WriteLine($"연결 완료: {endPoint}");
+
+            byte[] sendBuff = Encoding.UTF8.GetBytes("Welcome to Parking Server~!");
+            Send(sendBuff);
+
+            Thread.Sleep(1000);
+            Disconnect();
+        }
+
+        public override void OnDisconnected(EndPoint endPoint)
+        {
+            Console.WriteLine($"연결 해제: {endPoint}");
+        }
+
+        public override void OnRecive(ArraySegment<byte> buffer)
+        {
+            string reciveData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count); // 버퍼 크기, 시작 위치, 바이트 개수
+            Console.WriteLine($"[Client Receive Data] {reciveData}");
+        }
+
+        public override void OnSend(int numOfBytes)
+        {
+            Console.WriteLine($"사용된 바이트 수: {numOfBytes}");
+        }
+    }
+
     class Program
     {
         static Listener listener = new Listener();
-
-        static void OnAcceptHandler(Socket clientSocket)
-        {
-            try
-            {
-                Session session = new();
-                session.Start(clientSocket);
-
-                byte[] sendBuff = Encoding.UTF8.GetBytes("Welcome to Parking Server~!");
-                session.Send(sendBuff);
-
-                Thread.Sleep(1000);
-
-                session.Disconnect();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
-        }
 
         static void Main(string[] args)
         {
@@ -36,7 +46,7 @@ namespace ServerCore
             IPAddress ipAddr = ipHost.AddressList[0];
             IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
 
-            listener.Init(endPoint, OnAcceptHandler);
+            listener.Init(endPoint, () => { return new GameSession(); });
             Console.WriteLine("=======Listening=======");
             
             while(true)

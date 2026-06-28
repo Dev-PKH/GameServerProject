@@ -1,9 +1,10 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
 namespace ServerCore
 {
-    class Session
+    abstract class Session
     {
         Socket socket;
         int disconnected = 0;
@@ -15,6 +16,11 @@ namespace ServerCore
 
         SocketAsyncEventArgs sendArgs = new();
         SocketAsyncEventArgs reciveArgs = new();
+
+        public abstract void OnConnected(EndPoint endPoint);
+        public abstract void OnRecive(ArraySegment<byte> buffer);
+        public abstract void OnSend(int numOfBytes);
+        public abstract void OnDisconnected(EndPoint endPoint);
 
         public void Start(Socket socket)
         {
@@ -49,6 +55,7 @@ namespace ServerCore
             if (Interlocked.Exchange(ref disconnected, 1) == 1)
                 return;
 
+            OnDisconnected(socket.RemoteEndPoint);
             socket.Shutdown(SocketShutdown.Both);
             socket.Close();
         }
@@ -85,7 +92,7 @@ namespace ServerCore
                         sendArgs.BufferList = null;
                         sendPendingList.Clear();
 
-                        Console.WriteLine($"사용된 바이트 수: {sendArgs.BytesTransferred}");
+                        OnSend(sendArgs.BytesTransferred);
 
                         // 작업이 완료될 때 Queue에 다른 Send가 남아있는 경우 (내 작업중에 다른 클라이언트나 추가적인 Send 요청이 온 경우)
                         if (sendQueue.Count > 0) 
@@ -120,8 +127,8 @@ namespace ServerCore
             {
                 try
                 {
-                    string reciveData = Encoding.UTF8.GetString(args.Buffer, args.Offset, args.BytesTransferred); // 버퍼 크기, 시작 위치, 바이트 개수
-                    Console.WriteLine($"[Client Receive Data] {reciveData}");
+                    OnRecive(new ArraySegment<byte>(args.Buffer, args.Offset, args.BytesTransferred));
+
                     RegisterRecive();
                 }
                 catch (Exception e)
