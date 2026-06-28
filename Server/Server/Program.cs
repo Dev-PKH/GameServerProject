@@ -23,10 +23,10 @@ namespace Server
             Console.WriteLine($"연결 해제: {endPoint}");
         }
 
-        public override void OnRecive(ArraySegment<byte> buffer)
+        public override void OnReceive(ArraySegment<byte> buffer)
         {
-            string reciveData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count); // 버퍼 크기, 시작 위치, 바이트 개수
-            Console.WriteLine($"[Client Receive Data] {reciveData}");
+            string receiveData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count); // 버퍼 크기, 시작 위치, 바이트 개수
+            Console.WriteLine($"[Client Receive Data] {receiveData}");
         }
 
         public override void OnSend(int numOfBytes)
