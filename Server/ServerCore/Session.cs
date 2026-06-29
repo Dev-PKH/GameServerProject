@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -14,7 +15,7 @@ namespace ServerCore
 
         // Send 필드
         object lockObj = new(); // lock 오브젝트
-        Queue<byte[]> sendQueue = new(); // send 버퍼
+        Queue<ArraySegment<byte>> sendQueue = new(); // send 버퍼
         List<ArraySegment<byte>> sendPendingList = new(); // ArraySegment는 구조체라서, 값이 복사되어 저장됨 
 
         SocketAsyncEventArgs sendArgs = new();
@@ -38,7 +39,7 @@ namespace ServerCore
             RegisterReceive();
         }
 
-        public void Send(byte[] sendBuff)
+        public void Send(ArraySegment<byte> sendBuff)
         {
             lock (lockObj) // 동시 접근 차단
             {
@@ -66,8 +67,8 @@ namespace ServerCore
         {
             while (sendQueue.Count > 0)
             {
-                byte[] buffer = sendQueue.Dequeue();
-                sendPendingList.Add(new ArraySegment<byte>(buffer, 0, buffer.Length));
+                ArraySegment<byte> buffer = sendQueue.Dequeue();
+                sendPendingList.Add(buffer);
             }
 
             sendArgs.BufferList = sendPendingList;

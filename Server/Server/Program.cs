@@ -5,15 +5,28 @@ using ServerCore;
 
 namespace Server
 {
+    class Knight()
+    {
+        public int hp;
+        public int attack;
+    }
+
     class GameSession : Session
     {
         public override void OnConnected(EndPoint endPoint)
         {
             Console.WriteLine($"연결 완료: {endPoint}");
 
-            byte[] sendBuff = Encoding.UTF8.GetBytes("Welcome to Parking Server~!");
-            Send(sendBuff);
+            Knight knight = new() { hp = 100, attack = 10 };
 
+            ArraySegment<byte> openSegment = SendBufferHelper.Open(4096);
+            byte[] buff1 = BitConverter.GetBytes(knight.hp);
+            byte[] buff2 = BitConverter.GetBytes(knight.hp);
+            Array.Copy(buff1, 0, openSegment.Array, openSegment.Offset, buff1.Length);
+            Array.Copy(buff2, 0, openSegment.Array, openSegment.Offset + buff1.Length, buff2.Length);
+            ArraySegment<byte> sendBuff = SendBufferHelper.Close(buff1.Length + buff2.Length);
+
+            Send(sendBuff);
             Thread.Sleep(1000);
             Disconnect();
         }
