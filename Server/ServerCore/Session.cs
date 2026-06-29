@@ -9,6 +9,9 @@ namespace ServerCore
         Socket socket;
         int disconnected = 0;
 
+        // Recive
+        ReceiveBuffer receiveBuffer = new(1024);
+
         // Send 필드
         object lockObj = new(); // lock 오브젝트
         Queue<byte[]> sendQueue = new(); // send 버퍼
@@ -18,7 +21,7 @@ namespace ServerCore
         SocketAsyncEventArgs receiveArgs = new();
 
         public abstract void OnConnected(EndPoint endPoint);
-        public abstract void OnReceive(ArraySegment<byte> buffer);
+        public abstract int OnReceive(ArraySegment<byte> buffer);
         public abstract void OnSend(int numOfBytes);
         public abstract void OnDisconnected(EndPoint endPoint);
 
@@ -28,8 +31,6 @@ namespace ServerCore
 
             // Receive Setting
             receiveArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceiveCompleted);
-            receiveArgs.SetBuffer(new byte[1024], 0, 1024); // 바이트 크기, 시작 위치, 사용할 바이트 개수
-                                                           // -> 1024크기의 byte배열에 0번째부터 1024개를 사용함. (시작이 1이면 1~ 1025이므로 에러)
 
             // Send Setting
             sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
@@ -114,6 +115,10 @@ namespace ServerCore
 
         void RegisterReceive()
         {
+            receiveBuffer.Clear();
+            ArraySegment<byte> segment = receiveBuffer.WriteSegment;
+            receiveArgs.SetBuffer(segment.Array, segment.Offset, segment.Count);
+
             bool pending = socket.ReceiveAsync(receiveArgs);
 
             if (pending == false)
@@ -127,7 +132,28 @@ namespace ServerCore
             {
                 try
                 {
-                    OnReceive(new ArraySegment<byte>(args.Buffer, args.Offset, args.BytesTransferred));
+                    // 데이터 쓰기 범위 에러 (Write 커서 이동 진행)
+                    if (receiveBuffer.OnWrite(args.BytesTransferred) == false)
+                    {
+                        Disconnect();
+                        return;
+                    }
+
+                    // 데이터 읽기 범위 에러
+                    int processLength = OnReceive(receiveBuffer.ReadSegment);
+                    if(processLength < 0 || receiveBuffer.DataSize < processLength)
+                    {
+                        Disconnect();
+                        return;
+                    }
+
+                    // 데이터 읽기 범위 에러 (Read 커서 이동 진행)
+                    if(receiveBuffer.OnRead(processLength) == false)
+                    {
+                        Disconnect();
+                        return;
+                    }
+
 
                     RegisterReceive();
                 }

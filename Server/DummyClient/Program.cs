@@ -22,10 +22,11 @@ namespace DummyClient
             Console.WriteLine($"연결 해제: {endPoint}");
         }
 
-        public override void OnReceive(ArraySegment<byte> buffer)
+        public override int OnReceive(ArraySegment<byte> buffer)
         {
             string receiveData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count); // 버퍼 크기, 시작 위치, 바이트 개수
             Console.WriteLine($"[서버가 받을 정보] {receiveData}");
+            return buffer.Count;
         }
 
         public override void OnSend(int numOfBytes)
