@@ -31,9 +31,9 @@ namespace ServerCore
     public class SendBuffer
     {
         byte[] buffer;
-        int userSize = 0; // 사용된 데이터 크기
+        int usedSize = 0; // 사용된 데이터 크기
 
-        public int FreeSize => buffer.Length - userSize;
+        public int FreeSize => buffer.Length - usedSize;
 
         public SendBuffer(int chunkSize)
         {
@@ -45,13 +45,13 @@ namespace ServerCore
             if (reserveSize > FreeSize)
                 return null;
 
-            return new ArraySegment<byte>(buffer, userSize, reserveSize); 
+            return new ArraySegment<byte>(buffer, usedSize, reserveSize); 
         }
 
         public ArraySegment<byte> Close(int usedSize)
         {
-            ArraySegment<byte> segment = new(buffer, this.userSize, userSize);
-            this.userSize += userSize;
+            ArraySegment<byte> segment = new(buffer, this.usedSize, usedSize);
+            this.usedSize += usedSize;
             return segment;
         }
     }

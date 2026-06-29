@@ -21,7 +21,7 @@ namespace Server
 
             ArraySegment<byte> openSegment = SendBufferHelper.Open(4096);
             byte[] buff1 = BitConverter.GetBytes(knight.hp);
-            byte[] buff2 = BitConverter.GetBytes(knight.hp);
+            byte[] buff2 = BitConverter.GetBytes(knight.attack);
             Array.Copy(buff1, 0, openSegment.Array, openSegment.Offset, buff1.Length);
             Array.Copy(buff2, 0, openSegment.Array, openSegment.Offset + buff1.Length, buff2.Length);
             ArraySegment<byte> sendBuff = SendBufferHelper.Close(buff1.Length + buff2.Length);
