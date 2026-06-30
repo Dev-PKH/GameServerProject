@@ -9,15 +9,15 @@ namespace ServerCore
     public class SendBufferHelper
     {
         public static ThreadLocal<SendBuffer> CurrentBuffer = new(() => null);
-        public static int ChuckSize { get; set; } = 4096 * 100;
+        public static int ChunkSize { get; set; } = 4096 * 100;
 
         public static ArraySegment<byte> Open(int reserveSize)
         {
             if (CurrentBuffer.Value == null)
-                CurrentBuffer.Value = new(ChuckSize);
+                CurrentBuffer.Value = new(ChunkSize);
 
             if (CurrentBuffer.Value.FreeSize < reserveSize)
-                CurrentBuffer.Value = new(ChuckSize);
+                CurrentBuffer.Value = new(ChunkSize);
 
             return CurrentBuffer.Value.Open(reserveSize);
         }
