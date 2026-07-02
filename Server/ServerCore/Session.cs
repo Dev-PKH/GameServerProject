@@ -33,7 +33,7 @@ namespace ServerCore
                 buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
             }
 
-            return 0;
+            return processLen;
         }
 
         public abstract void OnReceivePacket(ArraySegment<byte> buffer);
