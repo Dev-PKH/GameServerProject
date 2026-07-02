@@ -5,30 +5,38 @@ using ServerCore;
 
 namespace Server
 {
-    class Knight()
+    class Packet()
     {
-        public int hp;
-        public int attack;
+        public ushort size; // 패킷 전체 길이 (2byte -> 64KB까지 저장 가능)
+        public ushort packetId;
     }
 
-    class GameSession : Session
+
+    class GameSession : PacketSession
     {
         public override void OnConnected(EndPoint endPoint)
         {
             Console.WriteLine($"연결 완료: {endPoint}");
 
-            Knight knight = new() { hp = 100, attack = 10 };
+            /*Packet packet = new() { size = 100, packetId = 10 };
 
             ArraySegment<byte> openSegment = SendBufferHelper.Open(4096);
-            byte[] buff1 = BitConverter.GetBytes(knight.hp);
-            byte[] buff2 = BitConverter.GetBytes(knight.attack);
+            byte[] buff1 = BitConverter.GetBytes(packet.size);
+            byte[] buff2 = BitConverter.GetBytes(packet.packetId);
             Array.Copy(buff1, 0, openSegment.Array, openSegment.Offset, buff1.Length);
             Array.Copy(buff2, 0, openSegment.Array, openSegment.Offset + buff1.Length, buff2.Length);
             ArraySegment<byte> sendBuff = SendBufferHelper.Close(buff1.Length + buff2.Length);
 
-            Send(sendBuff);
+            Send(sendBuff);*/
             Thread.Sleep(1000);
             Disconnect();
+        }
+
+        public override void OnReceivePacket(ArraySegment<byte> buffer)
+        {
+            ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+            ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + 2);
+            Console.WriteLine($"PacketId: {id} / PacketSize: {size}");
         }
 
         public override void OnDisconnected(EndPoint endPoint)
@@ -36,12 +44,6 @@ namespace Server
             Console.WriteLine($"연결 해제: {endPoint}");
         }
 
-        public override int OnReceive(ArraySegment<byte> buffer)
-        {
-            string receiveData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count); // 버퍼 크기, 시작 위치, 바이트 개수
-            Console.WriteLine($"[Client Receive Data] {receiveData}");
-            return buffer.Count;
-        }
 
         public override void OnSend(int numOfBytes)
         {

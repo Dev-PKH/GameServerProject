@@ -5,6 +5,40 @@ using System.Text;
 
 namespace ServerCore
 {
+    public abstract class PacketSession : Session
+    {
+        public static readonly int HeaderSize = 2;
+
+        // [size(2)][packetId(2)][...]
+        public sealed override int OnReceive(ArraySegment<byte> buffer)
+        {
+            int processLen = 0;
+
+            while(true)
+            {
+                // 최소한 헤더 파싱 여부 확인(Size)
+                if (buffer.Count < HeaderSize)
+                    break;
+
+                ushort dataSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+                
+                // 버퍼가 전체 데이터 사이즈보다 작을 경우(데이터가 온전히 전달되지 않은 경우)
+                if (buffer.Count < dataSize)
+                    break;
+
+                OnReceivePacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
+
+                // 수신한 패킷을 처리하여 재할당
+                processLen += dataSize;
+                buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
+            }
+
+            return 0;
+        }
+
+        public abstract void OnReceivePacket(ArraySegment<byte> buffer);
+    }
+
     public abstract class Session
     {
         Socket socket;

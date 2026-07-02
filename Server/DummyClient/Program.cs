@@ -5,14 +5,30 @@ using System.Text;
 
 namespace DummyClient
 {
+    class Packet()
+    {
+        public ushort size;
+        public ushort packetId;
+    }
+
+
     class GameSession : Session
     {
         public override void OnConnected(EndPoint endPoint)
         {
+            Console.WriteLine($"Conneted: {endPoint}");
+
+            Packet packet = new() { size = 4, packetId = 7 };
+
             for (int i = 0; i < 5; i++)
             {
-                // 관리자(Server)로 데이터 송신
-                byte[] sendBuff = Encoding.UTF8.GetBytes($"Parking complete!~ {i}");
+                ArraySegment<byte> openSegment = SendBufferHelper.Open(4096);
+                byte[] buff1 = BitConverter.GetBytes(packet.size);
+                byte[] buff2 = BitConverter.GetBytes(packet.packetId);
+                Array.Copy(buff1, 0, openSegment.Array, openSegment.Offset, buff1.Length);
+                Array.Copy(buff2, 0, openSegment.Array, openSegment.Offset + buff1.Length, buff2.Length);
+                ArraySegment<byte> sendBuff = SendBufferHelper.Close(packet.size);
+
                 Send(sendBuff);
             }
         }
