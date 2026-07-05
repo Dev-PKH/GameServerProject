@@ -18,6 +18,42 @@ namespace Server
         public long playerId;
         public string name;
 
+        public struct SkillInfo
+        {
+            public int id;
+            public short level;
+            public float duration;
+
+            public bool Write(Span<byte> span, ref ushort count)
+            {
+                bool success = true;
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), id);
+                count += sizeof(int);
+
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), level);
+                count += sizeof(short);
+
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), duration);
+                count += sizeof(float);
+
+                return success;
+            }
+
+            public void Read(ReadOnlySpan<byte> span, ref ushort count)
+            {
+                id = BitConverter.ToInt32(span.Slice(count, span.Length - count));
+                count += sizeof(int);
+
+                level = BitConverter.ToInt16(span.Slice(count, span.Length - count));
+                count += sizeof(short);
+
+                duration = BitConverter.ToSingle(span.Slice(count, span.Length - count));
+                count += sizeof(float);
+            }
+        }
+
+        public List<SkillInfo> skills = new();
+
         public PlayerInfoRequest()
         {
             packetId = (ushort)PacketID.PlayerInfoRequest;
@@ -40,11 +76,16 @@ namespace Server
             count += sizeof(long);
 
             // string
-            ushort nameLen = (ushort)Encoding.Unicode.GetByteCount(name);
+            ushort nameLen = (ushort)Encoding.Unicode.GetBytes(name, 0, name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
             success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), nameLen);
             count += sizeof(ushort);
-            Array.Copy(Encoding.Unicode.GetBytes(name), 0, segment.Array, count, nameLen);
             count += nameLen;
+
+            // Skill List
+            success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), (ushort)skills.Count);
+            count += sizeof(ushort);
+            foreach (SkillInfo skill in skills)
+                success &= skill.Write(span, ref count);
 
             success &= BitConverter.TryWriteBytes(span, count);
 
@@ -71,6 +112,17 @@ namespace Server
             count += sizeof(ushort);
             name = Encoding.Unicode.GetString(span.Slice(count, nameLen));
             count += nameLen;
+
+            // Skill List
+            skills.Clear();
+            ushort skillLen = BitConverter.ToUInt16(span.Slice(count, span.Length - count));
+            count += sizeof(ushort);
+            for (int i = 0; i < skillLen; i++)
+            {
+                SkillInfo skill = new SkillInfo();
+                skill.Read(span, ref count);
+                skills.Add(skill);
+            }
         }
     }
 
@@ -117,6 +169,11 @@ namespace Server
                         PlayerInfoRequest request = new PlayerInfoRequest();
                         request.Read(buffer);
                         Console.WriteLine($"PlayerInfoReq: {request.playerId} / {request.name}");
+
+                        foreach(PlayerInfoRequest.SkillInfo skill in request.skills)
+                        {
+                            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})");
+                        }
                     }
                     break;
             }

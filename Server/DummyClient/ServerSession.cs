@@ -19,6 +19,42 @@ namespace DummyClient
         public long playerId;
         public string name;
 
+        public struct SkillInfo
+        {
+            public int id;
+            public short level;
+            public float duration;
+
+            public bool Write(Span<byte> span, ref ushort count)
+            {
+                bool success = true;
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), id);
+                count += sizeof(int);
+
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), level);
+                count += sizeof(short);
+                
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), duration);
+                count += sizeof(float);
+
+                return success;
+            }
+
+            public void Read(ReadOnlySpan<byte> span, ref ushort count)
+            {
+                id = BitConverter.ToInt32(span.Slice(count, span.Length - count));
+                count += sizeof(int);
+
+                level = BitConverter.ToInt16(span.Slice(count, span.Length - count));
+                count += sizeof(short);
+
+                duration = BitConverter.ToSingle(span.Slice(count, span.Length - count));
+                count += sizeof(float);
+            }
+        }
+
+        public List<SkillInfo> skills = new();
+
         public PlayerInfoRequest()
         {
             packetId = (ushort)PacketID.PlayerInfoRequest;
@@ -46,6 +82,12 @@ namespace DummyClient
             count += sizeof(ushort);
             count += nameLen;
 
+            // Skill List
+            success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), (ushort)skills.Count);
+            count += sizeof(ushort);
+            foreach(SkillInfo skill in skills)
+                success &= skill.Write(span, ref count);
+
             success &= BitConverter.TryWriteBytes(span, count);
 
             if (!success)
@@ -71,6 +113,17 @@ namespace DummyClient
             count += sizeof(ushort);
             name = Encoding.Unicode.GetString(span.Slice(count, nameLen));
             count += nameLen;
+
+            // Skill List
+            skills.Clear();
+            ushort skillLen = BitConverter.ToUInt16(span.Slice(count, span.Length - count));
+            count += sizeof(ushort);
+            for (int i = 0; i < skillLen; i++)
+            {
+                SkillInfo skill = new SkillInfo();
+                skill.Read(span, ref count);
+                skills.Add(skill);
+            }
         }
     }
 
@@ -88,6 +141,10 @@ namespace DummyClient
             Console.WriteLine($"Conneted: {endPoint}");
 
             PlayerInfoRequest packet = new() { playerId = 1001, name = "PKH" };
+            packet.skills.Add(new PlayerInfoRequest.SkillInfo() { id = 101, level = 1, duration = 3.0f });
+            packet.skills.Add(new PlayerInfoRequest.SkillInfo() { id = 201, level = 2, duration = 4.0f });
+            packet.skills.Add(new PlayerInfoRequest.SkillInfo() { id = 301, level = 3, duration = 3.0f });
+            packet.skills.Add(new PlayerInfoRequest.SkillInfo() { id = 401, level = 4, duration = 2.0f });
 
             //for (int i = 0; i < 5; i++)
             {
