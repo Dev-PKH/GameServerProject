@@ -3,21 +3,62 @@ using System.Net;
 
 namespace Server
 {
-    class Packet()
+    public abstract class Packet()
     {
-        public ushort size; // 패킷 전체 길이 (2byte -> 64KB까지 저장 가능)
+        public ushort size;
         public ushort packetId;
+
+        public abstract ArraySegment<byte> Write();
+        public abstract void Read(ArraySegment<byte> segment);
     }
 
     class PlayerInfoRequest : Packet
     {
         public long playerId;
-    }
 
-    class PlayerInfoInGame : Packet
-    {
-        public int hp;
-        public int attack;
+        public PlayerInfoRequest()
+        {
+            packetId = (ushort)PacketID.PlayerInfoRequest;
+        }
+
+        public override ArraySegment<byte> Write()
+        {
+            ArraySegment<byte> openSegment = SendBufferHelper.Open(4096);
+
+            ushort count = 0;
+            bool success = true;
+
+            //success &= BitConverter.TryWriteBytes(
+            //    new Span<byte>(openSegment.Array, openSegment.Offset, openSegment.Count), packet.size);
+            count += 2;
+            success &= BitConverter.TryWriteBytes(
+                new Span<byte>(openSegment.Array, openSegment.Offset + count, openSegment.Count - count), packetId);
+            count += 2;
+            success &= BitConverter.TryWriteBytes(
+                new Span<byte>(openSegment.Array, openSegment.Offset + count, openSegment.Count - count), playerId);
+            count += 8;
+
+            success &= BitConverter.TryWriteBytes(
+                new Span<byte>(openSegment.Array, openSegment.Offset, openSegment.Count), count);
+
+            if (!success)
+                return null;
+
+            return SendBufferHelper.Close(count);
+        }
+
+        public override void Read(ArraySegment<byte> segment)
+        {
+            ushort count = 0;
+
+            //ushort size = BitConverter.ToUInt16(segment.Array, segment.Offset);
+            count += 2;
+            //ushort id = BitConverter.ToUInt16(segment.Array, segment.Offset + count);
+            count += 2;
+
+            playerId = BitConverter.ToInt64(new ReadOnlySpan<byte>(segment.Array, segment.Offset + count, segment.Count - count)); 
+            count += 8;
+        }
     }
 
     public enum PacketID
@@ -50,6 +91,7 @@ namespace Server
         public override void OnReceivePacket(ArraySegment<byte> buffer)
         {
             ushort count = 0;
+
             ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
             count += 2;
             ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
@@ -59,9 +101,9 @@ namespace Server
             {
                 case PacketID.PlayerInfoRequest:
                     {
-                        long playerId = BitConverter.ToInt64(buffer.Array, buffer.Offset + count);
-                        count += 8;
-                        Console.WriteLine($"PlayerInfoReq: {playerId}");
+                        PlayerInfoRequest request = new PlayerInfoRequest();
+                        request.Read(buffer);
+                        Console.WriteLine($"PlayerInfoReq: {request.playerId}");
                     }
                     break;
             }
