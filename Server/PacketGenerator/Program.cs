@@ -4,9 +4,11 @@ namespace PacketGenerator
 {
     class Program
     {
-        const string PDLPath = "C:\\Users\\kanghyeon\\Desktop\\GitFoloder\\CSharp\\GameServerProject\\Server\\PacketGenerator";
+        const string PDLPath = "C:\\Users\\kanghyeon\\Desktop\\GitFolder\\CSharp\\GameServerProject\\Server\\PacketGenerator";
 
         static string genPackets;
+        static ushort packetId;
+        static string packetEnums;
 
         static void Main(string[] args)
         {
@@ -29,7 +31,8 @@ namespace PacketGenerator
                     //Console.WriteLine(xmlReader.Name + " / " + xmlReader["name"]);
                 }
 
-                File.WriteAllText("GenePacket.cs", genPackets);
+                string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
+                File.WriteAllText("GenePacket.cs", fileText);
             }
         }
 
@@ -52,6 +55,7 @@ namespace PacketGenerator
             Tuple<string,string,string> t = ParseMembers(reader);
             genPackets += string.Format(PacketFormat.packetFormat,
                 packetName, t.Item1, t.Item2, t.Item3);
+            packetEnums += string.Format(PacketFormat.packetEnumFormat, packetName, ++packetId) + Environment.NewLine + "\t";
         }
 
         // {1} 멤버 변수들
@@ -92,8 +96,13 @@ namespace PacketGenerator
                 string memberType = reader.Name.ToLower();
                 switch(memberType)
                 {
-                    case "bool":
                     case "byte":
+                    case "sbyte":
+                        memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
+                        readCode += string.Format(PacketFormat.readByteFormat, memberName, memberType);
+                        writeCode += string.Format(PacketFormat.writeByteFormat, memberName, memberType);
+                        break;
+                    case "bool":
                     case "short":
                     case "ushort":
                     case "int":

@@ -4,15 +4,43 @@ using System.Text;
 
 namespace Server
 {
+    public enum PacketID
+    {
+        PlayerInfoRequest = 1,
+        Test = 2,
+
+    }
+
+
     class PlayerInfoRequest
     {
+        public byte testByte;
         public long playerId;
         public string name;
-        public struct Skill
+        public class Skill
         {
             public int id;
             public short level;
             public float duration;
+            public class Attribute
+            {
+                public int att;
+
+                public void Read(ReadOnlySpan<byte> span, ref ushort count)
+                {
+                    att = BitConverter.ToInt32(span.Slice(count, span.Length - count));
+                    count += sizeof(int);
+                }
+
+                public bool Write(Span<byte> span, ref ushort count)
+                {
+                    bool success = true;
+                    success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), att);
+                    count += sizeof(int);
+                    return success;
+                }
+            }
+            public List<Attribute> attributes = new();
 
             public void Read(ReadOnlySpan<byte> span, ref ushort count)
             {
@@ -22,6 +50,15 @@ namespace Server
                 count += sizeof(short);
                 duration = BitConverter.ToSingle(span.Slice(count, span.Length - count));
                 count += sizeof(float);
+                attributes.Clear();
+                ushort attributeLen = BitConverter.ToUInt16(span.Slice(count, span.Length - count));
+                count += sizeof(ushort);
+                for (int i = 0; i < attributeLen; i++)
+                {
+                    Attribute attribute = new Attribute();
+                    attribute.Read(span, ref count);
+                    attributes.Add(attribute);
+                }
             }
 
             public bool Write(Span<byte> span, ref ushort count)
@@ -33,10 +70,13 @@ namespace Server
                 count += sizeof(short);
                 success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), duration);
                 count += sizeof(float);
+                success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), (ushort)attributes.Count);
+                count += sizeof(ushort);
+                foreach (Attribute attribute in attributes)
+                    success &= attribute.Write(span, ref count);
                 return success;
             }
         }
-
         public List<Skill> skills = new();
 
         public void Read(ArraySegment<byte> segment)
@@ -46,6 +86,8 @@ namespace Server
             ReadOnlySpan<byte> span = new(segment.Array, segment.Offset, segment.Count);
             count += sizeof(ushort);
             count += sizeof(ushort);
+            testByte = (byte)segment.Array[segment.Offset + count];
+            count += sizeof(byte);
             playerId = BitConverter.ToInt64(span.Slice(count, span.Length - count));
             count += sizeof(long);
             ushort nameLen = BitConverter.ToUInt16(span.Slice(count, span.Length - count));
@@ -75,6 +117,8 @@ namespace Server
             count += sizeof(ushort);
             success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), (ushort)PacketID.PlayerInfoRequest);
             count += sizeof(ushort);
+            segment.Array[segment.Offset + count] = (byte)testByte;
+            count += sizeof(byte);
             success &= BitConverter.TryWriteBytes(span.Slice(count, span.Length - count), playerId);
             count += sizeof(long);
             ushort nameLen = (ushort)Encoding.Unicode.GetBytes(name, 0, name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
@@ -90,13 +134,6 @@ namespace Server
                 return null;
             return SendBufferHelper.Close(count);
         }
-    }
-
-    public enum PacketID
-    {
-        None = 0,
-        PlayerInfoRequest = 1,
-        PlayerInfoInGame = 2,
     }
 
     class ClientSession : PacketSession
