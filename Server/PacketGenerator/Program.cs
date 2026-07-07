@@ -4,22 +4,25 @@ namespace PacketGenerator
 {
     class Program
     {
-        const string PDLPath = "C:\\Users\\kanghyeon\\Desktop\\GitFolder\\CSharp\\GameServerProject\\Server\\PacketGenerator";
-
         static string genPackets;
         static ushort packetId;
         static string packetEnums;
 
         static void Main(string[] args)
         {
+            string PDLPath = "../PDL.xml";
+
             XmlReaderSettings settings = new()
             {
                 IgnoreComments= true, // 주석 무시
                 IgnoreWhitespace = true // 스페이스바 무시
             };
 
+            if (args.Length >= 1 )
+                PDLPath = args[0];
+
             // 작업이 끝날 때 Dispose를 실행
-            using (XmlReader xmlReader = XmlReader.Create(Path.Combine(PDLPath, "PDL.xml"), settings))
+            using (XmlReader xmlReader = XmlReader.Create(PDLPath, settings))
             {
                 xmlReader.MoveToContent();
 
@@ -32,7 +35,7 @@ namespace PacketGenerator
                 }
 
                 string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
-                File.WriteAllText("GenePacket.cs", fileText);
+                File.WriteAllText("GenPackets.cs", fileText);
             }
         }
 
