@@ -13,6 +13,7 @@ namespace ServerCore
         public sealed override int OnReceive(ArraySegment<byte> buffer)
         {
             int processLen = 0;
+            int packetCount = 0;
 
             while(true)
             {
@@ -27,11 +28,15 @@ namespace ServerCore
                     break;
 
                 OnReceivePacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
+                packetCount++;
 
                 // 수신한 패킷을 처리하여 재할당
                 processLen += dataSize;
                 buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
             }
+
+            if (packetCount > 1)
+                Console.WriteLine($"패킷 모아보내기: {packetCount}");
 
             return processLen;
         }
@@ -45,7 +50,7 @@ namespace ServerCore
         int disconnected = 0;
 
         // Recive
-        ReceiveBuffer receiveBuffer = new(1024);
+        ReceiveBuffer receiveBuffer = new(65535);
 
         // Send 필드
         object lockObj = new(); // lock 오브젝트
@@ -80,6 +85,21 @@ namespace ServerCore
             sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
 
             RegisterReceive();
+        }
+
+        public void Send(List<ArraySegment<byte>> sendBuffList)
+        {
+            if (sendBuffList.Count == 0)
+                return;
+
+            lock (lockObj) // 동시 접근 차단
+            {
+                foreach (var sendBuff in sendBuffList)
+                    sendQueue.Enqueue(sendBuff);
+
+                if (sendPendingList.Count == 0)
+                    RegisterSend();
+            }
         }
 
         public void Send(ArraySegment<byte> sendBuff)
