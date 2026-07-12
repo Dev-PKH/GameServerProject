@@ -11,17 +11,14 @@ namespace PacketGenerator
 class PacketManager
 {{
     #region Singleton
-    static PacketManager instance;
-    public static PacketManager Instance
-    {{
-        get
-        {{
-            if(instance == null)
-                instance = new PacketManager();
-            return instance;
-        }}
-    }}
+    static PacketManager instance = new PacketManager();
+    public static PacketManager Instance {{ get {{ return instance; }} }}
     #endregion
+
+    PacketManager()
+    {{
+        Register();
+    }}
 
     Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> onReceive = new();
     Dictionary<ushort, Action<PacketSession, IPacket>> handler = new();

@@ -15,20 +15,20 @@ namespace DummyClient
             IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
 
             Connector connector = new();
-            connector.Connect(endPoint, () => new ServerSession());
+            connector.Connect(endPoint, () => SessionManager.Instance.Generate(), 100);
 
             while(true)
             {
                 try
                 {
-                   
+                    SessionManager.Instance.SendForEach();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
 
-                Thread.Sleep(100);
+                Thread.Sleep(250);
             }
         }
     }
