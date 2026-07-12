@@ -20,8 +20,8 @@ class PacketManager
 
     public void Register()
     {
-        onReceive.Add((ushort)PacketID.C_PlayerInfoRequest, MakePacket<C_PlayerInfoRequest>);
-        handler.Add((ushort)PacketID.C_PlayerInfoRequest, PacketHandler.C_PlayerInfoRequestHandler);
+        onReceive.Add((ushort)PacketID.C_Chat, MakePacket<C_Chat>);
+        handler.Add((ushort)PacketID.C_Chat, PacketHandler.C_ChatHandler);
 
     }
 
