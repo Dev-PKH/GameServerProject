@@ -10,14 +10,14 @@ namespace DummyClient
         {
             Console.WriteLine($"Conneted: {endPoint}");
 
-            PlayerInfoRequest packet = new() { playerId = 1001, name = "PKH" };
-            var skill = new PlayerInfoRequest.Skill() { id = 101, level = 1, duration = 3.0f };
+            C_PlayerInfoRequest packet = new() { playerId = 1001, name = "PKH" };
+            var skill = new C_PlayerInfoRequest.Skill() { id = 101, level = 1, duration = 3.0f };
             skill.attributes.Add(new() { att = 77 });
             packet.skills.Add(skill);
 
-            packet.skills.Add(new PlayerInfoRequest.Skill() { id = 201, level = 2, duration = 4.0f });
-            packet.skills.Add(new PlayerInfoRequest.Skill() { id = 301, level = 3, duration = 3.0f });
-            packet.skills.Add(new PlayerInfoRequest.Skill() { id = 401, level = 4, duration = 2.0f });
+            packet.skills.Add(new C_PlayerInfoRequest.Skill() { id = 201, level = 2, duration = 4.0f });
+            packet.skills.Add(new C_PlayerInfoRequest.Skill() { id = 301, level = 3, duration = 3.0f });
+            packet.skills.Add(new C_PlayerInfoRequest.Skill() { id = 401, level = 4, duration = 2.0f });
 
             //for (int i = 0; i < 5; i++)
             {

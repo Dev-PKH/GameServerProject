@@ -5,20 +5,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server
+class PacketHandler
 {
-    class PacketHandler
+    public static void C_PlayerInfoRequestHandler(PacketSession session, IPacket packet)
     {
-        public static void PlayerInfoReqeustHandler(PacketSession session, IPacket packet)
+        C_PlayerInfoRequest request = packet as C_PlayerInfoRequest;
+
+        Console.WriteLine($"PlayerInfoReq: {request.playerId} / {request.name}");
+
+        foreach (C_PlayerInfoRequest.Skill skill in request.skills)
         {
-            PlayerInfoRequest request = packet as PlayerInfoRequest;
-
-            Console.WriteLine($"PlayerInfoReq: {request.playerId} / {request.name}");
-
-            foreach (PlayerInfoRequest.Skill skill in request.skills)
-            {
-                Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})");
-            }
+            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})");
         }
     }
 }
