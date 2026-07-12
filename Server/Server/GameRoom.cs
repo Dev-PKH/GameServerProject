@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,10 +7,15 @@ using System.Threading.Tasks;
 
 namespace Server
 {
-    class GameRoom
+    class GameRoom : IJobQueue
     {
         List<ClientSession> sessions = new();
-        object lockObj = new();
+        JobQueue jobQueue = new();
+
+        public void Push(Action job)
+        {
+            jobQueue.Push(job);
+        }
 
         public void Broadcast(ClientSession session, string chat)
         {
@@ -18,28 +24,20 @@ namespace Server
             packet.chat = $"[{packet.playerId}] : {chat}";
             ArraySegment<byte> segment = packet.Write();
 
-            lock (lockObj)
-            {
-                foreach (ClientSession cs in sessions)
-                    cs.Send(segment);
-            }
+
+            foreach (ClientSession cs in sessions)
+                cs.Send(segment);
         }
 
         public void Enter(ClientSession session)
         {
-            lock (lockObj)
-            {
-                sessions.Add(session);
-                session.Room = this;
-            }
+            sessions.Add(session);
+            session.Room = this;
         }
 
-        public void Leave(ClientSession session) 
+        public void Leave(ClientSession session)
         {
-            lock (lockObj)
-            {
-                sessions.Remove(session);
-            }
+            sessions.Remove(session);
         }
     }
 }
