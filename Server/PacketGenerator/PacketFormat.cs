@@ -10,7 +10,7 @@ namespace PacketGenerator
 using System;
 using System.Collections.Generic;
 
-class PacketManager
+public class PacketManager
 {{
     #region Singleton
     static PacketManager instance = new PacketManager();
@@ -107,7 +107,7 @@ public interface IPacket
         public static string packetFormat =
 // enter포함
 @"
-class {0} : IPacket
+public class {0} : IPacket
 {{
     {1}
 
@@ -195,7 +195,7 @@ count += sizeof(ushort);
 for (int i = 0; i < {1}Len; i++)
 {{
     {0} {1} = new {0}();
-    {1}.Read(span, ref count);
+    {1}.Read(segment, ref count);
     {1}s.Add({1});
 }}";
 
@@ -221,7 +221,7 @@ count += {0}Len;";
         // {0} 리스트 이름 [대문자]
         // {1} 리스트 이름 [소문자]
         public static string writeListFormat =
-@"Array.Copy(BitConverter.GetBytes({(ushort){1}s.Count}), 0, segment.Array, segment.Offset + count, sizeof(ushort));
+@"Array.Copy(BitConverter.GetBytes((ushort){1}s.Count), 0, segment.Array, segment.Offset + count, sizeof(ushort));
 count += sizeof(ushort);
 foreach({0} {1} in {1}s)
     {1}.Write(segment, ref count);";
