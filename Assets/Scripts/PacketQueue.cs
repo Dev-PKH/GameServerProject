@@ -28,4 +28,19 @@ public class PacketQueue
             return packetQueue.Dequeue();
         }
     }
+
+    public List<IPacket> PopAll()
+    {
+        List<IPacket> list = new();
+
+        lock (lockObj)
+        {
+            while (packetQueue.Count > 0)
+            {
+                list.Add(packetQueue.Dequeue());
+            }
+        }
+
+        return list;
+    }
 }
